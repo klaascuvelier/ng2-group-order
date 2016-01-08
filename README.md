@@ -1,7 +1,7 @@
 # ng2-group-order
 
 This is a small application I created using Angular 2 and TypeScript.
-Be sure to read more about it [in my blog post]().
+Be sure to read more about it [in my blog post](https://klaascuvelier.io/2016/01/angular2-firebase-ordering-prototype/).
 
 ## Usage
 
