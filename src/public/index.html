@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+    <head>
+        <script>
+            // work around angular
+            if (window.location.pathname === '/oauth2-redirect' &&
+                window.location.hash.indexOf('access_token') > -1 &&
+                window.location.search.indexOf('access_token') === -1
+            ) {
+                window.location.search = window.location.hash.replace('#', '');
+
+            }
+        </script>
+        <meta charset="utf-8">
+        <title>Meetup Food Ordering</title>
+        <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
+
+        <base href="/">
+    </head>
+
+    <body>
+        <app>Loading...</app>
+    </body>
+</html>

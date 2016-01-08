@@ -1,0 +1,25 @@
+<div class="content">
+
+    <h2>Ordering food in group</h2>
+
+    <p>Ordering food from an online food service in group can be a hassle.</p>
+
+    <p>This service should make that a little more convient. <a [routerLink]="['Create']">Create a new group</a>
+        and share the group link with your friends. Everyone with the link to a group can add his/her order.<br />
+        The group admin takes care of actual online ordering, and can easily manage the payment status the individual
+        orders</p>
+
+    <p>Use your Meeting account to  <a [routerLink]="['Login']">log in</a> and add your order to your group's page
+        <a [routerLink]="['Create']">create a new group</a>.
+    </p>
+
+    <div [hidden]="visits.length === 0">
+        <p>You recently visited these groups:</p>
+        <ul>
+            <li *ngFor="#visit of visits">
+                <a [routerLink]="['GroupOrder', { id: visit.id }]">{{ visit.name }}</a>
+            </li>
+        </ul>
+    </div>
+
+</div>
