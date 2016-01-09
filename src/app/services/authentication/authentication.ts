@@ -3,9 +3,8 @@ import { Request, RequestOptions, Http, Headers } from 'angular2/http';
 import { Storage } from '../storage/storage';
 import { User } from '../../classes/user';
 import { STORAGE_KEY_USER, STORAGE_KEY_TOKEN } from '../storage/storage';
-import { OAUTH2_CLIENT_ID, OAUTH2_REDIRECT_URL } from '../../../config';
+import { OAUTH2_CLIENT_ID, OAUTH2_REDIRECT_URL, MEETUP_MEMBER_SELF } from '../../../config';
 
-const MEETUP_MEMBER_SELF = 'https://klaascuvelier.be/meetup-proxy/api.php?url=/member/self/';
 const FETCH_METHOD_GET = 'get';
 const CONTENT_TYPE_JSON = 'application/json';
 const HTTP_STATUS_OK = 200;
