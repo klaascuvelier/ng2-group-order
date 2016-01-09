@@ -15,7 +15,7 @@ You will have to these things:
 * create a Firebase account
 * create a Meetup OAuth2 client
 * create a `config.ts` file in `./src/` and use these contents with the data of your created clients
-````
+````TypeScript
 // src/config.ts
 export const FIREBASE_ROOT = '';
 export const OAUTH2_CLIENT_ID = '';
