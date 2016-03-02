@@ -130,9 +130,17 @@
                 </div>
             </div>
 
+            <div class="admin-box">
+                <h4>Order Summary</h4>
+                <ul class="summary">
+                    <li *ngFor="#order of orderSummary">
+                        {{ order.count }} times {{ order.hash }}
+                    </li>
+                </ul>
+            </div>
 
             <div class="admin-box">
-                <h4>Summary</h4>
+                <h4>Payment Summary</h4>
                 <ul class="summary">
                     <li>
                         <label>Orders</label> {{ orders.length }}

@@ -32,6 +32,7 @@ export class GroupOrderComponent implements OnInit
     groupOrder: GroupOrderInterface = new GroupOrder();
     user: UserInterface = new User();
     orders: Array<Order> = [];
+    orderSummary: Array<{}> = null;
 
     loading: boolean = true;
     loggedIn: boolean = true;
@@ -106,6 +107,8 @@ export class GroupOrderComponent implements OnInit
                     this.totalCost = this.orders.map(order => order.price).reduce((total, cost) => total + cost, 0);
                     this.paidOrdersCount = this.orders.filter(order => order.payed).length;
                     this.orderedCount = this.orders.filter(order => order.status === OrderStatus.ORDERED).length;
+
+                    this.orderSummary = this.generateSummary(this.orders);
                 },
                 error => {
                     alert('fout');
@@ -234,6 +237,35 @@ export class GroupOrderComponent implements OnInit
 
             self.storage.setItem(STORAGE_KEY_VISITED, visited);
         }
+    }
+
+    generateSummary (orders)
+    {
+        const array = [];
+
+        orders
+            .map(order => {
+                order.hash = `${order.description} - ${order.price} euro`;
+                return order;
+            })
+            .forEach(order => incrementOrder(order.hash));
+
+        return array;
+
+        function incrementOrder(hash)
+        {
+            const item = array.filter(item => item.hash === hash)[0] || null;
+
+            if (item !== null) {
+                item.count++;
+            }
+            else {
+                array.push({
+                    hash, count: 1
+                });
+            }
+        }
+
     }
 
 }
