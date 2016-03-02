@@ -27,7 +27,7 @@ export class GroupOrder implements GroupOrderInterface
     static build (data) : GroupOrder
     {
         const groupOrder = new GroupOrder();
-console.log('buidling', data);
+
         groupOrder.id = data.id;
         groupOrder.name = data.name;
         groupOrder.orderUrl = data.orderUrl;
