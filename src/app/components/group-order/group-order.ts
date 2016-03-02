@@ -9,6 +9,7 @@ import { UuidGenerator } from "../../services/uuid/uuid-generator";
 import { GroupOrderStatus } from "../../classes/group-order";
 import { Storage, STORAGE_KEY_VISITED} from '../../services/storage/storage';
 import { Visit } from '../../classes/visit';
+import { ArraySortPipe } from '../../pipes/array-sort';
 
 const VALUE_NOT_FOUND = -1;
 
@@ -18,7 +19,7 @@ const VALUE_NOT_FOUND = -1;
     styles: [require('./group-order.scss')],
     providers: [],
     directives: [...ROUTER_DIRECTIVES],
-    pipes: []
+    pipes: [ArraySortPipe]
 })
 export class GroupOrderComponent implements OnInit
 {

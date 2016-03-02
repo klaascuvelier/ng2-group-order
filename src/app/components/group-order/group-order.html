@@ -28,7 +28,7 @@
             </thead>
 
             <tbody>
-                <tr *ngFor="#order of orders">
+                <tr *ngFor="#order of orders | arraySort:'+description'">
                     <td>{{ order.creatorName }}</td>
                     <td>{{ order.description }}</td>
                     <td class="cost">{{ order.price }}</td>
