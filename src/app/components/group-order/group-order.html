@@ -58,6 +58,10 @@
                             <button type="button" (click)="removeOrder(order.id)">Remove</button>
                         </span>
 
+                        <span [hidden]="isAdmin || alreadyOrdered">
+                            <button type="button" (click)="orderDescription.value = order.description; orderPrice.value = order.price;">Copy this order</button>
+                        </span>
+
                         <span [hidden]="!isAdmin">
                             <button type="button" [hidden]="order.status === 1" (click)="setOrderStatus(order.id, 1)">Set Ordered</button>
                             <button type="button" [hidden]="order.status !== 1" (click)="setOrderStatus(order.id, 0)">Set Created</button>
