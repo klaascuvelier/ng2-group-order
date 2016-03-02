@@ -99,57 +99,68 @@
         <div [hidden]="!isAdmin">
             <h3>Admin Option</h3>
 
-            <h4>Groups status</h4>
-            <label>
-                <input type="radio" name="groupStatus" (click)="openOrders()" [checked]="groupOrder.status === 0">
-                Orders are open
-            </label><br />
+            <div class="wrap">
+                <div class="admin-box half">
+                    <h4>Groups status</h4>
+                    <label>
+                        <input type="radio" name="groupStatus" (click)="openOrders()" [checked]="groupOrder.status === 0">
+                        Orders are open
+                    </label><br />
 
-            <label>
-                <input type="radio" name="groupStatus" (click)="closeOrders()" [checked]="groupOrder.status === 1">
-                Orders are closed
-            </label><br />
+                    <label>
+                        <input type="radio" name="groupStatus" (click)="closeOrders()" [checked]="groupOrder.status === 1">
+                        Orders are closed
+                    </label><br />
+                </div>
 
-            <h4>All orders status</h4>
-            <label>
-                <input type="radio" name="orderStatus" (click)="setOrdersStatus(0)" [checked]="allOrdersStatus === 0">
-                Created
-            </label><br />
-            <label>
-                <input type="radio" name="orderStatus" (click)="setOrdersStatus(1)" [checked]="allOrdersStatus === 1">
-                Ordered
-            </label><br />
-            <label>
-                <input type="radio" name="orderStatus" (click)="setOrdersStatus(2)" [checked]="allOrdersStatus === 2">
-                Finished
-            </label><br />
+                <div class="admin-box half">
+                    <h4>All orders status</h4>
+                    <label>
+                        <input type="radio" name="orderStatus" (click)="setOrdersStatus(0)" [checked]="allOrdersStatus === 0">
+                        Created
+                    </label><br />
+                    <label>
+                        <input type="radio" name="orderStatus" (click)="setOrdersStatus(1)" [checked]="allOrdersStatus === 1">
+                        Ordered
+                    </label><br />
+                    <label>
+                        <input type="radio" name="orderStatus" (click)="setOrdersStatus(2)" [checked]="allOrdersStatus === 2">
+                        Finished
+                    </label><br />
+                </div>
+            </div>
 
-            <h4>Summary</h4>
-            <ul class="summary">
-                <li>
-                    <label>Orders</label> {{ orders.length }}
-                </li>
 
-                <li>
-                    <label>Paid</label> {{ paidOrdersCount }}
-                </li>
+            <div class="admin-box">
+                <h4>Summary</h4>
+                <ul class="summary">
+                    <li>
+                        <label>Orders</label> {{ orders.length }}
+                    </li>
 
-                <li>
-                    <label>Unpaid</label> {{ orders.length - paidOrdersCount }}
-                </li>
+                    <li>
+                        <label>Paid</label> {{ paidOrdersCount }}
+                    </li>
 
-                <li>
-                    <label>Ordered</label> {{ orderedCount }}
-                </li>
+                    <li>
+                        <label>Unpaid</label> {{ orders.length - paidOrdersCount }}
+                    </li>
 
-                <li>
-                    <label>Not yet ordered</label> {{ orders.length - orderedCount }}
-                </li>
+                    <li>
+                        <label>Ordered</label> {{ orderedCount }}
+                    </li>
 
-                <li>
-                    <label>Total cost</label> {{ totalCost }}
-                </li>
-            </ul>
+                    <li>
+                        <label>Not yet ordered</label> {{ orders.length - orderedCount }}
+                    </li>
+
+                    <li>
+                        <label>Total cost</label> {{ totalCost }}
+                    </li>
+                </ul>
+            </div>
+
+
         </div>
 
     </div>
