@@ -5,7 +5,8 @@ import { Pipe } from "angular2/core";
 })
 export class ArraySortPipe {
 
-    transform(array: Array<string>, args: string): Array<string> {
+    transform (array: Array<string>, args: string): Array<string>
+    {
 
         if (typeof args[0] === 'undefined') {
             return array;

@@ -33,6 +33,7 @@ export class GroupOrderComponent implements OnInit
     user: UserInterface = new User();
     orders: Array<Order> = [];
     orderSummary: Array<{}> = null;
+    userOrderSummary: Array<{}> = null;
 
     loading: boolean = true;
     loggedIn: boolean = true;
@@ -109,6 +110,7 @@ export class GroupOrderComponent implements OnInit
                     this.orderedCount = this.orders.filter(order => order.status === OrderStatus.ORDERED).length;
 
                     this.orderSummary = this.generateSummary(this.orders);
+                    this.userOrderSummary = this.generateSummary(this.orders.filter(order => order.creatorId === this.user.id));
                 },
                 error => {
                     alert('fout');

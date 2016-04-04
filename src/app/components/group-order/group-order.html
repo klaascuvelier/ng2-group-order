@@ -28,7 +28,7 @@
             </thead>
 
             <tbody>
-                <tr *ngFor="#order of orders | arraySort:'+description'">
+                <tr *ngFor="#order of orders | arraySort:'+creatorName'">
                     <td>{{ order.creatorName }}</td>
                     <td>{{ order.description }}</td>
                     <td class="cost">{{ order.price }}</td>
@@ -75,7 +75,7 @@
         <h4>Add your order</h4>
         <p [hidden]="!alreadyOrdered || groupOrder.status === 1">You already placed an order</p>
         <p [hidden]="groupOrder.status !== 1">Orders are closed</p>
-        <form class="orders" [hidden]="!loggedIn || alreadyOrdered || groupOrder.status === 1" (submit)="addOrder(orderDescription.value, orderPrice.value)">
+        <form class="orders" [hidden]="!loggedIn || groupOrder.status === 1" (submit)="addOrder(orderDescription.value, orderPrice.value)">
             <fieldset>
                 <label>Name</label>
                 <input type="text" value="{{ user.name }}" disabled>
@@ -95,6 +95,15 @@
                 <button type="submit">Add Order</button>
             </fieldset>
         </form>
+
+        <div [hidden]="isAdmin" class="admin-box">
+            <h4>Your order summary</h4>
+            <ul class="summary">
+                <li *ngFor="#order of userOrderSummary">
+                    {{ order.count }} times {{ order.hash }}
+                </li>
+            </ul>
+        </div>
 
         <div [hidden]="!isAdmin">
             <h3>Admin Option</h3>
