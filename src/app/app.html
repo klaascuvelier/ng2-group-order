@@ -3,9 +3,11 @@
 
     <nav>
         <a [routerLink]="['About']">About</a>
-        <a [routerLink]="['Login']">Login</a>
+        <a [hidden]="user !== null" [routerLink]="['Login']">Login</a>
         <a [routerLink]="['Create']">Create</a>
     </nav>
+
+    <div class="user-info" *ngIf="user !== null"> {{ user.name }} <small>{{ user.id }}</small></div>
 </header>
 <main>
     <router-outlet></router-outlet>

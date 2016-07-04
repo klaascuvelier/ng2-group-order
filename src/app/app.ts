@@ -9,6 +9,8 @@ import { LoginComponent } from './components/login/login';
 import { CreateGroupComponent } from './components/create-group/create-group';
 import { GroupOrderComponent } from './components/group-order/group-order';
 import { Oauth2RedirectComponent } from './components/oauth2-redirect/oauth2-redirect';
+import { Authentication } from "./services/authentication/authentication";
+import { UserInterface } from "./classes/user";
 
 /*
  * App Component
@@ -31,8 +33,18 @@ import { Oauth2RedirectComponent } from './components/oauth2-redirect/oauth2-red
 ])
 export class App
 {
-    constructor ()
+    authentication: Authentication = null;
+    user: UserInterface = null;
+
+    constructor (authentication: Authentication)
     {
+        this.authentication = authentication;
+
+        this.authentication.getUser().then(user => {
+            this.user = user;
+            console.info('logged in', user);
+        });
+
         console.info('bootstrapped the app');
     }
 }

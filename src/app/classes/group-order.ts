@@ -7,6 +7,7 @@ export interface GroupOrderInterface
     creatorName: string;
     creatorId: string;
     status: GroupOrderStatus;
+    admins: number[];
 }
 
 export enum GroupOrderStatus {
@@ -23,6 +24,7 @@ export class GroupOrder implements GroupOrderInterface
     creatorName: string = '';
     creatorId: string = '';
     status: GroupOrderStatus = GroupOrderStatus.OPEN;
+    admins: number[] = [];
 
     static build (data) : GroupOrder
     {
@@ -35,6 +37,7 @@ export class GroupOrder implements GroupOrderInterface
         groupOrder.creatorName = data.creatorName;
         groupOrder.creatorId = data.creatorId;
         groupOrder.status = data.status;
+        groupOrder.admins = data.admins;
 
         return groupOrder;
     }

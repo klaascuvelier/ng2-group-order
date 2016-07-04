@@ -1,7 +1,7 @@
 <div class="content">
     <h2>Create a new group order</h2>
 
-    <form (submit)="createGroupOrder(groupName.value, groupOrderUrl.value, groupDescription.value)">
+    <form (submit)="createGroupOrder(groupName.value, groupOrderUrl.value, groupDescription.value, groupAdmins.value)">
         <fieldset>
             <label>Group Name</label>
             <input type="text" placeholder="some group name" #groupName>
@@ -20,6 +20,11 @@
         <fieldset>
             <label>Organizer</label>
             <input type="text" disabled value="{{ user.name }}">
+        </fieldset>
+
+        <fieldset>
+            <label>Other admins (add user's id, comma separated)</label>
+            <input type="text" #groupAdmins placeholder="124895, 23498983" />
         </fieldset>
 
         <fieldset class="submit">

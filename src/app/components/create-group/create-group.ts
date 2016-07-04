@@ -39,7 +39,7 @@ export class CreateGroupComponent implements OnInit
             .catch(() => this.router.navigate(['Login']));
     }
 
-    createGroupOrder (name, orderUrl, description)
+    createGroupOrder (name, orderUrl, description, admins)
     {
         // Refetch user
         this.authentication.getUser()
@@ -47,6 +47,16 @@ export class CreateGroupComponent implements OnInit
                 this.user = user;
 
                 const id = UuidGenerator.generate();
+                const adminIds = admins
+                    .split(',')
+                    .map(adminId => adminId.trim())
+                    .filter(adminId => /^[0-9]+$/.test(adminId))
+                    .map(adminId => Number(adminId));
+
+                // Make sure the creators id is in the admins list
+                if (adminIds.indexOf(user.id) === -1) {
+                    adminIds.unshift(user.id);
+                }
 
                 const order = GroupOrder.build({
                     id,
@@ -55,7 +65,8 @@ export class CreateGroupComponent implements OnInit
                     description,
                     creatorName: user.name,
                     creatorId: user.id,
-                    status: GroupOrderStatus.OPEN
+                    status: GroupOrderStatus.OPEN,
+                    adminIds
                 });
 
                 // You'd think this might cause some race condition, but haven't experienced it yet
