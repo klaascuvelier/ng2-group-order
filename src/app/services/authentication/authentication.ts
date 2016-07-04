@@ -100,7 +100,6 @@ export class Authentication
 
                     const user = User.build({ name, id, avatar });
 
-                    console.info('got user info', user);
                     resolve(user);
 
                     self.storage.setItem(STORAGE_KEY_USER, user);
