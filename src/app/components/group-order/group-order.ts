@@ -86,11 +86,11 @@ export class GroupOrderComponent implements OnInit
                         this.router.navigate(['About']);
                     }
                     else {
-                        const userId = this.user.id;
+                        const userId = Number(this.user.id);
 
                         this.groupOrder = GroupOrder.build(info);
                         this.isAdmin = this.groupOrder.admins.indexOf(userId) > -1 ||
-                            this.groupOrder.creatorId === userId;
+                            Number(this.groupOrder.creatorId) === userId;
 
                         this.storeVisit();
                     }
