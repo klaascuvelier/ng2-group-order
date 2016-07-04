@@ -9,6 +9,7 @@ import { UuidGenerator } from "../../services/uuid/uuid-generator";
 import { GroupOrderStatus } from "../../classes/group-order";
 import { Storage, STORAGE_KEY_VISITED} from '../../services/storage/storage';
 import { Visit } from '../../classes/visit';
+import { ArraySortPipe } from '../../pipes/array-sort';
 
 const VALUE_NOT_FOUND = -1;
 
@@ -18,7 +19,7 @@ const VALUE_NOT_FOUND = -1;
     styles: [require('./group-order.scss')],
     providers: [],
     directives: [...ROUTER_DIRECTIVES],
-    pipes: []
+    pipes: [ArraySortPipe]
 })
 export class GroupOrderComponent implements OnInit
 {
@@ -31,6 +32,8 @@ export class GroupOrderComponent implements OnInit
     groupOrder: GroupOrderInterface = new GroupOrder();
     user: UserInterface = new User();
     orders: Array<Order> = [];
+    orderSummary: Array<{}> = null;
+    userOrderSummary: Array<{}> = null;
 
     loading: boolean = true;
     loggedIn: boolean = true;
@@ -105,6 +108,9 @@ export class GroupOrderComponent implements OnInit
                     this.totalCost = this.orders.map(order => order.price).reduce((total, cost) => total + cost, 0);
                     this.paidOrdersCount = this.orders.filter(order => order.payed).length;
                     this.orderedCount = this.orders.filter(order => order.status === OrderStatus.ORDERED).length;
+
+                    this.orderSummary = this.generateSummary(this.orders);
+                    this.userOrderSummary = this.generateSummary(this.orders.filter(order => order.creatorId === this.user.id));
                 },
                 error => {
                     alert('fout');
@@ -233,6 +239,35 @@ export class GroupOrderComponent implements OnInit
 
             self.storage.setItem(STORAGE_KEY_VISITED, visited);
         }
+    }
+
+    generateSummary (orders)
+    {
+        const array = [];
+
+        orders
+            .map(order => {
+                order.hash = `${order.description} - ${order.price} euro`;
+                return order;
+            })
+            .forEach(order => incrementOrder(order.hash));
+
+        return array;
+
+        function incrementOrder(hash)
+        {
+            const item = array.filter(item => item.hash === hash)[0] || null;
+
+            if (item !== null) {
+                item.count++;
+            }
+            else {
+                array.push({
+                    hash, count: 1
+                });
+            }
+        }
+
     }
 
 }

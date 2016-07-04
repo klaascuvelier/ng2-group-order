@@ -28,7 +28,7 @@
             </thead>
 
             <tbody>
-                <tr *ngFor="#order of orders">
+                <tr *ngFor="#order of orders | arraySort:'+creatorName'">
                     <td>{{ order.creatorName }}</td>
                     <td>{{ order.description }}</td>
                     <td class="cost">{{ order.price }}</td>
@@ -58,6 +58,10 @@
                             <button type="button" (click)="removeOrder(order.id)">Remove</button>
                         </span>
 
+                        <span [hidden]="isAdmin || alreadyOrdered">
+                            <button type="button" (click)="orderDescription.value = order.description; orderPrice.value = order.price;">Copy this order</button>
+                        </span>
+
                         <span [hidden]="!isAdmin">
                             <button type="button" [hidden]="order.status === 1" (click)="setOrderStatus(order.id, 1)">Set Ordered</button>
                             <button type="button" [hidden]="order.status !== 1" (click)="setOrderStatus(order.id, 0)">Set Created</button>
@@ -71,7 +75,7 @@
         <h4>Add your order</h4>
         <p [hidden]="!alreadyOrdered || groupOrder.status === 1">You already placed an order</p>
         <p [hidden]="groupOrder.status !== 1">Orders are closed</p>
-        <form class="orders" [hidden]="!loggedIn || alreadyOrdered || groupOrder.status === 1" (submit)="addOrder(orderDescription.value, orderPrice.value)">
+        <form class="orders" [hidden]="!loggedIn || groupOrder.status === 1" (submit)="addOrder(orderDescription.value, orderPrice.value)">
             <fieldset>
                 <label>Name</label>
                 <input type="text" value="{{ user.name }}" disabled>
@@ -92,60 +96,88 @@
             </fieldset>
         </form>
 
+        <div [hidden]="isAdmin" class="admin-box">
+            <h4>Your order summary</h4>
+            <ul class="summary">
+                <li *ngFor="#order of userOrderSummary">
+                    {{ order.count }} times {{ order.hash }}
+                </li>
+            </ul>
+        </div>
+
         <div [hidden]="!isAdmin">
             <h3>Admin Option</h3>
 
-            <h4>Groups status</h4>
-            <label>
-                <input type="radio" name="groupStatus" (click)="openOrders()" [checked]="groupOrder.status === 0">
-                Orders are open
-            </label><br />
+            <div class="wrap">
+                <div class="admin-box half">
+                    <h4>Groups status</h4>
+                    <label>
+                        <input type="radio" name="groupStatus" (click)="openOrders()" [checked]="groupOrder.status === 0">
+                        Orders are open
+                    </label><br />
 
-            <label>
-                <input type="radio" name="groupStatus" (click)="closeOrders()" [checked]="groupOrder.status === 1">
-                Orders are closed
-            </label><br />
+                    <label>
+                        <input type="radio" name="groupStatus" (click)="closeOrders()" [checked]="groupOrder.status === 1">
+                        Orders are closed
+                    </label><br />
+                </div>
 
-            <h4>All orders status</h4>
-            <label>
-                <input type="radio" name="orderStatus" (click)="setOrdersStatus(0)" [checked]="allOrdersStatus === 0">
-                Created
-            </label><br />
-            <label>
-                <input type="radio" name="orderStatus" (click)="setOrdersStatus(1)" [checked]="allOrdersStatus === 1">
-                Ordered
-            </label><br />
-            <label>
-                <input type="radio" name="orderStatus" (click)="setOrdersStatus(2)" [checked]="allOrdersStatus === 2">
-                Finished
-            </label><br />
+                <div class="admin-box half">
+                    <h4>All orders status</h4>
+                    <label>
+                        <input type="radio" name="orderStatus" (click)="setOrdersStatus(0)" [checked]="allOrdersStatus === 0">
+                        Created
+                    </label><br />
+                    <label>
+                        <input type="radio" name="orderStatus" (click)="setOrdersStatus(1)" [checked]="allOrdersStatus === 1">
+                        Ordered
+                    </label><br />
+                    <label>
+                        <input type="radio" name="orderStatus" (click)="setOrdersStatus(2)" [checked]="allOrdersStatus === 2">
+                        Finished
+                    </label><br />
+                </div>
+            </div>
 
-            <h4>Summary</h4>
-            <ul class="summary">
-                <li>
-                    <label>Orders</label> {{ orders.length }}
-                </li>
+            <div class="admin-box">
+                <h4>Order Summary</h4>
+                <ul class="summary">
+                    <li *ngFor="#order of orderSummary">
+                        {{ order.count }} times {{ order.hash }}
+                    </li>
+                </ul>
+            </div>
 
-                <li>
-                    <label>Paid</label> {{ paidOrdersCount }}
-                </li>
+            <div class="admin-box">
+                <h4>Payment Summary</h4>
+                <ul class="summary">
+                    <li>
+                        <label>Orders</label> {{ orders.length }}
+                    </li>
 
-                <li>
-                    <label>Unpaid</label> {{ orders.length - paidOrdersCount }}
-                </li>
+                    <li>
+                        <label>Paid</label> {{ paidOrdersCount }}
+                    </li>
 
-                <li>
-                    <label>Ordered</label> {{ orderedCount }}
-                </li>
+                    <li>
+                        <label>Unpaid</label> {{ orders.length - paidOrdersCount }}
+                    </li>
 
-                <li>
-                    <label>Not yet ordered</label> {{ orders.length - orderedCount }}
-                </li>
+                    <li>
+                        <label>Ordered</label> {{ orderedCount }}
+                    </li>
 
-                <li>
-                    <label>Total cost</label> {{ totalCost }}
-                </li>
-            </ul>
+                    <li>
+                        <label>Not yet ordered</label> {{ orders.length - orderedCount }}
+                    </li>
+
+                    <li>
+                        <label>Total cost</label> {{ totalCost }}
+                    </li>
+                </ul>
+            </div>
+
+
         </div>
 
     </div>
