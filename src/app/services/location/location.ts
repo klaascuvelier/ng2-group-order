@@ -1,4 +1,7 @@
-export class Location
+import { Injectable } from '@angular/core';
+
+@Injectable()
+export class LocationHelper
 {
     static getSearchParam (param)
     {

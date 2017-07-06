@@ -10,6 +10,7 @@ export class User implements UserInterface
     id: string = '';
     name: string = '';
     avatar: string = '';
+    email: string = '';
 
     static build (data) : User
     {

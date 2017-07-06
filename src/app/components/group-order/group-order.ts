@@ -1,251 +1,431 @@
-import { Component, OnInit } from 'angular2/core';
-import { RouteParams, Router, ROUTER_DIRECTIVES } from 'angular2/router';
-import { Authentication } from "../../services/authentication/authentication";
-import { DataStore } from "../../services/datastore/datastore";
-import { GroupOrder, GroupOrderInterface } from "../../classes/group-order";
-import { User, UserInterface } from "../../classes/user";
-import { Order, OrderStatus } from "../../classes/order";
-import { UuidGenerator } from "../../services/uuid/uuid-generator";
-import { GroupOrderStatus } from "../../classes/group-order";
-import { Storage, STORAGE_KEY_VISITED} from '../../services/storage/storage';
+import { Authentication } from '../../services/authentication/authentication';
+import { DataStore } from '../../services/datastore/datastore';
+import { GroupOrder, GroupOrderInterface } from '../../classes/group-order';
+import { User, UserInterface } from '../../classes/user';
+import { Order, OrderStatus } from '../../classes/order';
+import { UuidGenerator } from '../../services/uuid/uuid-generator';
+import { GroupOrderStatus } from '../../classes/group-order';
+import { STORAGE_KEY_VISITED, StorageHelper } from '../../services/storage/storage';
 import { Visit } from '../../classes/visit';
-import { ArraySortPipe } from '../../pipes/array-sort';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Subscription } from 'rxjs/Subscription';
+import { Observable } from 'rxjs/Observable';
+import { BehaviorSubject } from 'rxjs/BehaviorSubject';
 
 const VALUE_NOT_FOUND = -1;
 
 @Component({
     selector: 'group-order',
-    template: require('./group-order.html'),
-    styles: [require('./group-order.scss')],
-    providers: [],
-    directives: [...ROUTER_DIRECTIVES],
-    pipes: [ArraySortPipe]
+    template: `
+        <div class="content">
+            <p *ngIf="(isLoading$|async)">
+                Loading the order group &hellip;
+            </p>
+
+            <div *ngIf="!(isLoading$|async)">
+                <div *ngIf="(groupOrder$|async) === null">
+                    <p>Could not find the specified group order.<br/>It might have been removed, it might have never existed&hellip;</p>
+                </div>
+
+                <div *ngIf="(groupOrder$|async) !== null; let groupOrder">
+                    <h2>{{ groupOrder.name }}</h2>
+                    <p>{{ groupOrder.description }}</p>
+
+                    <p>Choose your food from <a [href]="(groupOrder$|async)?.orderUrl" target="_blank">{{ (groupOrder$|async)?.orderUrl }} </a>
+                        and add it to the list below.</p>
+
+                    <h3>Orders</h3>
+
+                    <p *ngIf="!(isLoggedIn$|async)">You need to <a [routerLink]="['/login']">log in</a> to place an order</p>
+
+                    <table width="100%" class="order-list" *ngIf="(isLoggedIn$|async)">
+                        <thead>
+                        <tr>
+                            <th>Person</th>
+                            <th>Order</th>
+                            <th>Cost</th>
+                            <th>Payment</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+
+                        <tbody>
+                        <tr *ngFor="let order of (orders$|async)">
+                            <td>{{ order.creatorName }}</td>
+                            <td>{{ order.description }}</td>
+                            <td class="cost">{{ order.price }}</td>
+                            <td class="center payment {{ order.payed ? 'paid' : 'unpaid' }}">
+                                <div *ngIf="!(isAdmin$|async)">
+                                    <span [hidden]="!order.payed">paid</span>
+                                    <span [hidden]="order.payed">unpaid</span>
+                                </div>
+
+                                <div *ngIf="(isAdmin$|async)">
+                                    <label>
+                                        <input type="checkbox" name="order{{ order.id }}paymentstatus"
+                                               [checked]="order.payed"
+                                               (change)="togglePayment(order.id)"
+                                        />
+                                        paid
+                                    </label>
+                                </div>
+                            </td>
+                            <td class="center">
+                                <span [hidden]="order.status !== 0">created</span>
+                                <span [hidden]="order.status !== 1">ordered</span>
+                                <span [hidden]="order.status !== 2">finished</span>
+                            </td>
+                            <td>
+                                <button
+                                    type="button"
+                                    *ngIf="(isAdmin$|async) || (userId$|async) === order.creatorId"
+                                    (click)="removeOrder(order.id)"
+                                >Remove
+                                </button>
+
+                                <button
+                                    type="button"
+                                    *ngIf="!(hasAlreadyOrdered$)"
+                                    (click)="orderDescription.value = order.description; orderPrice.value = order.price;"
+                                >Copy this order
+                                </button>
+
+
+                                <div *ngIf="(isAdmin$|async)">
+                                    <button type="button" [hidden]="order.status === 1" (click)="setOrderStatus(order.id, 1)">Set Ordered
+                                    </button>
+                                    <button type="button" [hidden]="order.status !== 1" (click)="setOrderStatus(order.id, 0)">Set Created
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+
+
+                    <div *ngIf="(isLoggedIn$|async)">
+                        <h4>Add your order</h4>
+                        <p *ngIf="(hasAlreadyOrdered$|async)">You already placed an order</p>
+                        <p [hidden]="groupOrder.status !== 1">Orders are closed</p>
+    
+                        <form class="orders"
+                              *ngIf="(isLoggedIn$|async) && (groupOrder.status !== 0)"
+                              (submit)="addOrder(orderDescription.value, orderPrice.value)"
+                        >
+                            <fieldset>
+                                <label>Name</label>
+                                <input type="text" value="{{ (user$|async)?.name }}" disabled>
+                            </fieldset>
+    
+                            <fieldset>
+                                <label>Description</label>
+                                <input type="text" placeholder="some pizza" #orderDescription>
+                            </fieldset>
+    
+                            <fieldset>
+                                <label>Price in euro</label>
+                                <input type="text" placeholder="15" #orderPrice>
+                            </fieldset>
+    
+                            <fieldset class="submit">
+                                <button type="submit">Add Order</button>
+                            </fieldset>
+                        </form>
+
+                        <div *ngIf="!(isAdmin$|async)" class="admin-box">
+                            <h4>Your order summary</h4>
+                            <ul class="summary">
+                                <li *ngFor="let order of usersOrdersSummary$|async">
+                                    {{ order.count }} times {{ order.hash }}
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div *ngIf="(isAdmin$|async)">
+                        <h3>Admin Option</h3>
+
+                        <div class="wrap">
+                            <div class="admin-box half">
+                                <h4>Groups status</h4>
+                                <label>
+                                    <input type="radio" name="groupStatus" (click)="openOrders()" [checked]="groupOrder.status === 0">
+                                    Orders are open
+                                </label><br/>
+
+                                <label>
+                                    <input type="radio" name="groupStatus" (click)="closeOrders()" [checked]="groupOrder.status === 1">
+                                    Orders are closed
+                                </label><br/>
+                            </div>
+
+                            <div class="admin-box half">
+                                <h4>All orders status</h4>
+                                <label>
+                                    <input type="radio" name="orderStatus" (click)="setOrdersStatus(0)" [checked]="allOrdersStatus === 0">
+                                    Created
+                                </label><br/>
+                                <label>
+                                    <input type="radio" name="orderStatus" (click)="setOrdersStatus(1)" [checked]="allOrdersStatus === 1">
+                                    Ordered
+                                </label><br/>
+                                <label>
+                                    <input type="radio" name="orderStatus" (click)="setOrdersStatus(2)" [checked]="allOrdersStatus === 2">
+                                    Finished
+                                </label><br/>
+                            </div>
+                        </div>
+
+                        <div class="admin-box">
+                            <h4>Order Summary</h4>
+                            <ul class="summary">
+                                <li *ngFor="let order of ordersSummary$|async">
+                                    {{ order.count }} times {{ order.hash }}
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="admin-box">
+                            <h4>Payment Summary</h4>
+                            <ul class="summary">
+                                <li>
+                                    <label>Orders</label> {{ ordersCount$|async }}
+                                </li>
+
+                                <li>
+                                    <label>Paid</label> {{ paidOrdersCount$|async }}
+                                </li>
+
+                                <li>
+                                    <label>Unpaid</label> {{ unpaidOrdersCount$|async }}
+                                </li>
+
+                                <li>
+                                    <label>Ordered</label> {{ orderedCount$|async }}
+                                </li>
+
+                                <li>
+                                    <label>Not yet ordered</label> {{ notOrderedCount$|async }}
+                                </li>
+
+                                <li>
+                                    <label>Total cost</label> {{ totalCost$|async }}
+                                </li>
+                            </ul>
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    `,
+    styles: [`
+        .summary label {
+            display: inline-block;
+        }
+    `],
 })
-export class GroupOrderComponent implements OnInit
-{
-    router: Router = null;
-    dataStore: DataStore = null;
-    authentication: Authentication = null;
-    storage: Storage = null;
+export class GroupOrderComponent implements OnInit, OnDestroy {
+    routeParams$ = this.route.params;
+    groupOrderId$ = this.routeParams$.map(params => params['id']);
 
-    groupOrderId: string = null;
-    groupOrder: GroupOrderInterface = new GroupOrder();
-    user: UserInterface = new User();
-    orders: Array<Order> = [];
-    orderSummary: Array<{}> = null;
-    userOrderSummary: Array<{}> = null;
+    user$ = this.authentication.getUser();
+    isLoggedIn$ = this.user$.map(user => user !== null);
+    userId$ = this.user$.filter(user => user !== null).map(user => user.id);
+    groupOrder$: Observable<GroupOrder> = this.groupOrderId$.mergeMap(groupOrderId => this.dataStore.getGroupOrderById(groupOrderId));
+    orders$: Observable<Array<Order>> = this.groupOrderId$.mergeMap(groupOrderId => this.dataStore.getOrdersForGroup(groupOrderId));
 
-    loading: boolean = true;
-    loggedIn: boolean = true;
-    alreadyOrdered: boolean = false;
-    isAdmin: boolean = false;
+    ordersCount$ = this.orders$.map(orders => orders ? orders.length : 0);
+    paidOrdersCount$ = this.orders$.map(orders => orders ? orders.filter(order => order.payed === true).length : 0);
+    unpaidOrdersCount$ = this.orders$.map(orders => orders ? orders.filter(order => order.payed === false).length : 0);
+    orderedCount$ = this.orders$.map(orders => orders ? orders.filter(order => order.status === OrderStatus.ORDERED).length : 0);
+    notOrderedCount$ = this.orders$.map(orders => orders ? orders.filter(order => order.status !== OrderStatus.ORDERED).length : 0);
+    totalCost$ = this.orders$.map(orders => orders.reduce((total, order) => total + order.price, 0));
 
-    totalCost: number = 0;
-    paidOrdersCount: number = 0;
-    orderedCount: number = 0;
+    isAdmin$ = Observable
+        .combineLatest(this.groupOrder$, this.userId$)
+        .map(([groupOrder, userId]) => userId === groupOrder.creatorId)
+        .startWith(false);
+
+    hasAlreadyOrdered$ = Observable
+        .combineLatest(this.orders$, this.userId$)
+        .map(([orders, userId]) => orders.filter(order => order.creatorId === userId).length > 0)
+        .startWith(false);
+
+    isLoading$ = Observable
+        .combineLatest(this.user$, this.groupOrder$, this.orders$)
+        .map(() => false)
+        .startWith(true);
+
+    usersOrder$: Observable<Array<Order>> = Observable
+        .combineLatest(this.orders$, this.userId$)
+        .take(1)
+        .map(([orders, userId]) => orders.filter(order => order.creatorId = userId));
+
+    usersOrdersSummary$ = this.usersOrder$.map(usersOrders => this.generateSummary(usersOrders));
+    ordersSummary$ = this.orders$.map(orders => this.generateSummary(orders));
+
+    private subscriptions: Array<Subscription> = [];
+
     allOrdersStatus: OrderStatus = OrderStatus.CREATED;
 
-    constructor (routeParams: RouteParams, dataStore: DataStore, authentication: Authentication, router: Router, storage: Storage)
-    {
-        this.router = router;
-        this.dataStore = dataStore;
-        this.storage = storage;
-        this.authentication = authentication;
-        this.groupOrderId = routeParams.params['id'];
-        this.loading = true;
-        this.loggedIn = false;
-        this.alreadyOrdered = false;
-        this.isAdmin = false;
-        this.totalCost = 0;
-        this.paidOrdersCount = 0;
-        this.orderedCount = 0;
-    }
+    constructor(
+        private route: ActivatedRoute,
+        private dataStore: DataStore,
+        private authentication: Authentication,
+        private storage: StorageHelper,
+        private uuidGenerator: UuidGenerator
+    ) {}
 
-    ngOnInit ()
-    {
-        this.authentication
-            .getUser()
-            .then(user => {
-                this.user = user;
-                this.loggedIn = true;
-
-                this.isAdmin = this.groupOrder.creatorId === this.user.id;
-                this.alreadyOrdered = this.orders.filter(order => order.creatorId === this.user.id).length > 0;
+    ngOnInit() {
+        // Navigate away if
+        this.subscriptions.push(
+            this.groupOrder$.subscribe(order => {
+                if (order !== null) {
+                    this.storeVisit(order);
+                }
             })
-            .catch(() => {
-                this.user = new User();
-                this.loggedIn = false;
+        );
+    }
+
+    ngOnDestroy(): void {
+        this.subscriptions.forEach(subscription => subscription.unsubscribe());
+    }
+
+    addOrder(description, price): void {
+        Observable
+            .combineLatest([this.user$, this.groupOrderId$])
+            .take(1)
+            .subscribe(([user, groupOrderId]) => {
+                const order = Order.build({
+                    id: this.uuidGenerator.generate(),
+                    creatorName: user.name,
+                    creatorId: user.id,
+                    description,
+                    price: parseFloat(price.replace(',', '.')),
+                    status: OrderStatus.CREATED,
+                    payed: false
+                });
+
+                this.dataStore.addOrderForGroup(groupOrderId, order);
             });
-
-        this.dataStore
-            .getGroupOrderById(this.groupOrderId)
-            .subscribe(
-                info => {
-                    this.loading = false;
-                    if (info === null) {
-                        this.router.navigate(['About']);
-                    }
-                    else {
-                        const userId = Number(this.user.id);
-
-                        this.groupOrder = GroupOrder.build(info);
-                        this.isAdmin = this.groupOrder.admins.indexOf(userId) > -1 ||
-                            Number(this.groupOrder.creatorId) === userId;
-
-                        this.storeVisit();
-                    }
-                },
-                error => {
-                    console.warn('order group issue', error);
-                    this.router.navigate(['About']);
-                }
-            );
-
-        this.dataStore
-            .getOrdersForGroup(this.groupOrderId)
-            .subscribe(
-                info => {
-                    this.orders = info.map(data => Order.build(data));
-                    this.alreadyOrdered = this.orders.filter(order => order.creatorId === this.user.id).length > 0;
-
-                    this.totalCost = this.orders.map(order => order.price).reduce((total, cost) => total + cost, 0);
-                    this.paidOrdersCount = this.orders.filter(order => order.payed).length;
-                    this.orderedCount = this.orders.filter(order => order.status === OrderStatus.ORDERED).length;
-
-                    this.orderSummary = this.generateSummary(this.orders);
-                    this.userOrderSummary = this.generateSummary(this.orders.filter(order => order.creatorId === this.user.id));
-                },
-                error => {
-                    alert('fout');
-                    console.warn('orders issue', error);
-                    this.router.navigate(['About']);
-                }
-            );
     }
 
-    addOrder (description, price)
-    {
-        const order = Order.build({
-            id: UuidGenerator.generate(),
-            creatorName: this.user.name,
-            creatorId: this.user.id,
-            description,
-            price: parseFloat(price.replace(',', '.')),
-            status: OrderStatus.CREATED,
-            payed: false
-        });
+    togglePayment(orderId): void {
+        Observable
+            .combineLatest([this.isAdmin$, this.orders$, this.groupOrderId$])
+            .take(1)
+            .subscribe(([isAdmin, orders, groupOrderId]) => {
+                if (isAdmin) {
+                    const updatedOrders = orders.map(order => {
+                        if (order.id === orderId) {
+                            order.payed = !order.payed;
+                        }
 
-        this.dataStore.addOrderForGroup(this.groupOrderId, order);
-    }
+                        return order;
+                    });
 
-    togglePayment (orderId)
-    {
-        if (this.isAdmin) {
-            const orders = this.orders.map(order => {
-                if (order.id === orderId) {
-                    order.payed = !order.payed;
+                    this.dataStore.updateGroupOrders(groupOrderId, updatedOrders);
                 }
-
-                return order;
             });
-
-            this.dataStore.updateGroupOrders(this.groupOrderId, orders);
-        }
     }
 
-    closeOrders ()
-    {
-        if (this.isAdmin) {
-            this.groupOrder.status = GroupOrderStatus.CLOSED;
-            this.dataStore.updateGroupOrder(this.groupOrder);
-        }
-    }
-
-    openOrders ()
-    {
-        if (this.isAdmin) {
-            this.groupOrder.status = GroupOrderStatus.OPEN;
-            this.dataStore.updateGroupOrder(this.groupOrder);
-        }
-    }
-
-    setOrdersStatus (status)
-    {
-        if (this.isAdmin) {
-            const orders = this.orders.map(order => {
-                order.status = status;
-                return order;
-            });
-            this.dataStore.updateGroupOrders(this.groupOrderId, orders);
-
-            this.allOrdersStatus = status;
-        }
-    }
-
-    setOrderStatus (orderId, status)
-    {
-        if (this.isAdmin) {
-            const orders = this.orders.map(order => {
-                if (order.id === orderId) {
-                    order.status = status;
+    closeOrders(): void {
+        Observable
+            .combineLatest(this.isAdmin$, this.groupOrder$)
+            .take(1)
+            .subscribe(([isAdmin, groupOrder]) => {
+                if (isAdmin) {
+                    groupOrder.status = GroupOrderStatus.CLOSED;
+                    return this.dataStore.updateGroupOrder(groupOrder);
                 }
-                return order;
+                return Observable.empty();
             });
-            this.dataStore.updateGroupOrders(this.groupOrderId, orders);
-        }
     }
 
-    removeOrder (orderId)
-    {
-        const order = this.orders.filter(order => order.id === orderId)[0];
-
-        if (order && (order.creatorId === this.user.id || this.isAdmin))
-        {
-            const ordersLeft = this.orders.filter(order => order.id !== orderId);
-            this.dataStore.updateGroupOrders(this.groupOrderId, ordersLeft);
-        }
+    openOrders(): void {
+        Observable
+            .combineLatest(this.isAdmin$, this.groupOrder$)
+            .take(1)
+            .subscribe(([isAdmin, groupOrder]) => {
+                if (isAdmin) {
+                    groupOrder.status = GroupOrderStatus.OPEN;
+                    return this.dataStore.updateGroupOrder(groupOrder);
+                }
+                return Observable.empty();
+            });
     }
 
-    storeVisit ()
-    {
+    setOrdersStatus(status): void {
+        Observable
+            .combineLatest(this.isAdmin$, this.orders$, this.groupOrderId$)
+            .take(1)
+            .subscribe(([isAdmin, orders, groupOrderId]) => {
+                if (isAdmin) {
+                    const updatedOrders = orders.map(order => {
+                        order.status = status;
+                        return order;
+                    });
+
+                    this.allOrdersStatus = status;
+                    this.dataStore.updateGroupOrders(groupOrderId, updatedOrders);
+                }
+            })
+    }
+
+    setOrderStatus(orderId, status): void {
+        Observable
+            .combineLatest(this.isAdmin$, this.orders$, this.groupOrderId$)
+            .take(1)
+            .subscribe(([isAdmin, orders, groupOrderId]) => {
+                if (isAdmin) {
+                    const updatedOrders = orders.map(order => {
+                        if (order.id === orderId) {
+                            order.status = status;
+                        }
+                        return order;
+                    });
+
+                    this.dataStore.updateGroupOrders(groupOrderId, updatedOrders);
+                }
+            });
+    }
+
+    removeOrder(orderId): void {
+        Observable
+            .combineLatest([this.isAdmin$, this.orders$, this.groupOrderId$, this.userId$])
+            .take(1)
+            .subscribe(([isAdmin, orders, groupOrderId, userId]) => {
+                const order = orders.filter(order => order.id === orderId)[0] || null;
+                const ownerId = order ? order.creatorId : null;
+
+                if (isAdmin || ownerId === userId) {
+                    const ordersLeft = orders.filter(order => order.id !== orderId);
+                    return this.dataStore.updateGroupOrders(groupOrderId, ordersLeft);
+                }
+                return Observable.empty();
+            });
+    }
+
+    storeVisit(groupOrder: GroupOrder) {
         const self = this;
 
-        if (this.groupOrder.id && this.groupOrder.name) {
-            // Store visited group
-            if (this.storage.hasKey(STORAGE_KEY_VISITED)) {
-                this.storage
-                    .getItem(STORAGE_KEY_VISITED)
-                    .then(visited => {
-                        if (visited
-                                .map((visit: Visit) => visit.id)
-                                .indexOf(this.groupOrderId) === VALUE_NOT_FOUND
-                        ) {
-                            addVisit(visited);
-                        }
-                    });
-            }
-            else {
-                addVisit([]);
-            }
-        }
+        this.storage
+            .getItem(STORAGE_KEY_VISITED)
+            .subscribe(alreadyVisited => {
+                const newVisit = {id: groupOrder.id, name: groupOrder.name};
+                const visits = [newVisit]
+                    .concat(alreadyVisited ? alreadyVisited.filter(visit => visit.id !== groupOrder.id) : [])
+                    .slice(0, 5);
 
-        function addVisit (visited: Array<Visit>)
-        {
-            visited.push(Visit.build({
-                id: self.groupOrderId,
-                name: self.groupOrder.name
-            }));
-
-            if (visited.length > 5) {
-                visited = visited.slice(visited.length - 5);
-            }
-
-            self.storage.setItem(STORAGE_KEY_VISITED, visited);
-        }
+                self.storage.setItem(STORAGE_KEY_VISITED, visits);
+            });
     }
 
-    generateSummary (orders)
-    {
+    generateSummary(orders) {
         const array = [];
 
         orders
@@ -257,8 +437,7 @@ export class GroupOrderComponent implements OnInit
 
         return array;
 
-        function incrementOrder(hash)
-        {
+        function incrementOrder(hash) {
             const item = array.filter(item => item.hash === hash)[0] || null;
 
             if (item !== null) {
@@ -270,7 +449,5 @@ export class GroupOrderComponent implements OnInit
                 });
             }
         }
-
     }
-
 }

@@ -1,53 +1,76 @@
-import { Component, OnInit } from 'angular2/core';
-import { Router, ROUTER_DIRECTIVES } from 'angular2/router';
-import { Authentication } from '../../services/authentication/authentication';
-import { Storage, STORAGE_KEY_VISITED } from '../../services/storage/storage';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+
+import { AUTH_PROVIDERS, Authentication } from '../../services/authentication/authentication';
+import { STORAGE_KEY_VISITED, StorageHelper } from '../../services/storage/storage';
 import { Visit } from "../../classes/visit";
+import { BehaviorSubject } from 'rxjs/BehaviorSubject';
+import { Subscription } from 'rxjs/Subscription';
 
 @Component({
     selector: 'login',
-    template: require('./login.html'),
-    styleUrls: [require('./login.css')],
-    providers: [Authentication],
-    directives: [...ROUTER_DIRECTIVES],
-    pipes: []
+    template: `
+        <div class="content">
+            <h2>Login</h2>
+
+            <p *ngIf="(loading$|async)">Checking your status&hellip;</p>
+
+            <div *ngIf="!(loading$|async)">
+                <button 
+                    type="button"
+                    *ngIf="!(loggedIn$|async)"
+                    (click)="loginWithGithub($event)"
+                >Log in with Github</button>
+
+                <div *ngIf="(loggedIn$|async)">
+                    <p>You are already logged in. 
+                        Go back to your group's page to place your order, 
+                        or <a [routerLink]="['/create']">create a new group</a>
+                    </p>
+
+                    <div *ngIf="(visits$|async) && (visits$|async).length > 0">
+                        <p>You recently visited these groups:</p>
+                        <ul>
+                            <li *ngFor="let visit of visits$|async">
+                                <a [routerLink]="['/groupOrder', { id: visit.id }]">{{ visit.name }}</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    `
 })
-export class LoginComponent implements OnInit
+export class LoginComponent implements OnInit, OnDestroy
 {
-    url: string = null;
-    router: Router = null;
-    authentication: Authentication = null;
-    loggedIn: boolean = false;
-    loading: boolean = true;
-    visits: Array<Visit> = [];
+    loading$ = new BehaviorSubject<boolean>(true);
+    loggedIn$ = this.authentication.isAuthenticated();
+    visits$ = this.storage.getItem(STORAGE_KEY_VISITED);
 
-    constructor (authentication: Authentication, router: Router, storage: Storage)
-    {
-        this.router = router;
-        this.authentication = authentication;
-        this.url = authentication.authenticationUrl;
-        this.loggedIn = false;
+    private subscriptions: Array<Subscription> = [];
 
-        if (storage.hasKey(STORAGE_KEY_VISITED)) {
-            storage
-                .getItem(STORAGE_KEY_VISITED)
-                .then(visits => this.visits = visits);
-        }
-    }
+    constructor (
+        private authentication: Authentication,
+        private storage: StorageHelper
+    ) {}
 
-    ngOnInit ()
-    {
-        this.loading = true;
-        this.authentication
-            .getUser()
-            .then(user => {
-                this.loading = false;
-                this.loggedIn = true;
+    ngOnInit(): void {
+        this.subscriptions.push(
+            this.loggedIn$.subscribe((value) => {
+                this.loading$.next(false);
+                console.log(
+                    'AIUTH', value
+                );
             })
-            .catch(() => {
-                this.loading = false;
-                this.loggedIn = false;
-            });
+        )
     }
 
+    ngOnDestroy(): void {
+        this.subscriptions.forEach(subscription => subscription.unsubscribe());
+    }
+
+    loginWithGithub(): void {
+        this.authentication.login(AUTH_PROVIDERS.GITHUB);
+    }
 }
