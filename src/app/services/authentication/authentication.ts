@@ -1,52 +1,52 @@
-import { Injectable } from 'angular2/core';
-import { Request, RequestOptions, Http, Headers } from 'angular2/http';
-import { Storage } from '../storage/storage';
+import { Injectable } from '@angular/core';
+import { Http } from '@angular/http';
+import { AngularFireAuth } from 'angularfire2/auth';
+import { Observable } from 'rxjs/Observable';
+import * as firebase from 'firebase/app';
+
+
+import { StorageHelper } from '../storage/storage';
 import { User } from '../../classes/user';
 import { STORAGE_KEY_USER, STORAGE_KEY_TOKEN } from '../storage/storage';
-import { OAUTH2_CLIENT_ID, OAUTH2_REDIRECT_URL, MEETUP_MEMBER_SELF } from '../../../config';
 
 const FETCH_METHOD_GET = 'get';
 const CONTENT_TYPE_JSON = 'application/json';
 const HTTP_STATUS_OK = 200;
 
-@Injectable()
-export class Authentication
-{
-    http: Http = null;
-    storage: Storage = null;
+export const AUTH_PROVIDERS = {
+    GITHUB: 'GITHUB'
+};
 
-    authenticationUrl : string = '';
+@Injectable()
+export class Authentication {
+    authenticationUrl: string = '';
     token: string = null;
     user: User;
 
-    constructor (http: Http, storage: Storage)
-    {
-        console.info('Authentication instance created');
+    constructor(
+        private afAuth: AngularFireAuth,
+        private http: Http,
+        private storage: StorageHelper
+    ) {}
 
-        this.http = http;
-        this.storage = storage;
+    isAuthenticated(): Observable<boolean> {
+        return this.getUser().map(user => user !== null);
+    }
 
-        this.authenticationUrl = `https://secure.meetup.com/oauth2/authorize?client_id=${OAUTH2_CLIENT_ID}` +
-            `&response_type=token&redirect_uri=${OAUTH2_REDIRECT_URL}`;
-
-        if (storage.hasKey(STORAGE_KEY_TOKEN)) {
-            storage.getItem(STORAGE_KEY_TOKEN).then(token => this.token = token);
+    login(provider: string): void {
+        if (provider === AUTH_PROVIDERS.GITHUB) {
+            this.afAuth.auth.signInWithPopup(new firebase.auth.GithubAuthProvider());
         }
-
-        if (storage.hasKey(STORAGE_KEY_USER)) {
-            storage.getItem(STORAGE_KEY_USER).then(user => this.user = user);
+        else {
+            throw new Error('Unknown auth provider ' + provider);
         }
     }
 
-    isAuthenticated ()
-    {
-        return this.getUser()
-            .then(() => Promise.resolve(true))
-            .catch(() => Promise.reject(false));
+    logout(): void {
+        this.afAuth.auth.signOut();
     }
 
-    setToken (token)
-    {
+    setToken(token): void {
         this.token = token;
 
         if (token === null) {
@@ -58,65 +58,81 @@ export class Authentication
         }
     }
 
-    getUser () : Promise<User>
-    {
-        const self = this;
-        return new Promise(getUserExecutor);
+    getUser(): Observable<User|null> {
+        return this.afAuth.authState
+            .distinctUntilChanged()
+            .map(afUser => {
+                if (afUser !== null) {
+                    const {displayName, email, photoURL, uid} = afUser.providerData[0];
 
-        function getUserExecutor (resolve, reject)
-        {
-            if (!self.storage.hasKey(STORAGE_KEY_TOKEN)) {
-                reject('no token specified');
-                return;
-            }
-            else {
-                self.storage.getItem(STORAGE_KEY_TOKEN).then(onToken);
-            }
-
-            function onToken (token)
-            {
-                const options = new RequestOptions({
-                    url: MEETUP_MEMBER_SELF,
-                    method: FETCH_METHOD_GET,
-                    headers: new Headers({
-                        'Accept': CONTENT_TYPE_JSON,
-                        'Content-Type': CONTENT_TYPE_JSON,
-                        'Authorization': `Bearer ${token}`
-                    })
-                });
-
-                self.http
-                    .request(new Request(options))
-                    .subscribe(onResponse, onError);
-            }
-
-            function onResponse (response)
-            {
-                if (response.status === HTTP_STATUS_OK) {
-                    const info = response.json();
-                    const name = info.name;
-                    const id = info.id;
-                    const avatar = info.photo ? info.photo.thumb_link : '';
-
-                    const user = User.build({ name, id, avatar });
-
-                    resolve(user);
-
-                    self.storage.setItem(STORAGE_KEY_USER, user);
-                    self.user = user;
+                    return {
+                        id: uid,
+                        avatar: photoURL,
+                        email,
+                        name: displayName
+                    };
                 }
-                else {
-                    onError();
-                }
-            }
 
-            function onError ()
-            {
-                self.setToken(null);
+                return null;
+            });
 
-                console.warn('could not fetch user info');
-                reject('could not fetch user info');
-            }
-        }
+        // const self = this;
+        // return new Promise(getUserExecutor);
+        //
+        // function getUserExecutor (resolve, reject)
+        // {
+        //     if (!self.storage.hasKey(STORAGE_KEY_TOKEN)) {
+        //         reject('no token specified');
+        //         return;
+        //     }
+        //     else {
+        //         self.storage.getItem(STORAGE_KEY_TOKEN).then(onToken);
+        //     }
+        //
+        //     function onToken (token)
+        //     {
+        //         const options = new RequestOptions({
+        //             url: MEETUP_MEMBER_SELF,
+        //             method: FETCH_METHOD_GET,
+        //             headers: new Headers({
+        //                 'Accept': CONTENT_TYPE_JSON,
+        //                 'Content-Type': CONTENT_TYPE_JSON,
+        //                 'Authorization': `Bearer ${token}`
+        //             })
+        //         });
+        //
+        //         self.http
+        //             .request(new Request(options))
+        //             .subscribe(onResponse, onError);
+        //     }
+        //
+        //     function onResponse (response)
+        //     {
+        //         if (response.status === HTTP_STATUS_OK) {
+        //             const info = response.json();
+        //             const name = info.name;
+        //             const id = info.id;
+        //             const avatar = info.photo ? info.photo.thumb_link : '';
+        //
+        //             const user = User.build({ name, id, avatar });
+        //
+        //             resolve(user);
+        //
+        //             self.storage.setItem(STORAGE_KEY_USER, user);
+        //             self.user = user;
+        //         }
+        //         else {
+        //             onError();
+        //         }
+        //     }
+        //
+        //     function onError ()
+        //     {
+        //         self.setToken(null);
+        //
+        //         console.warn('could not fetch user info');
+        //         reject('could not fetch user info');
+        //     }
+        // }
     }
 }

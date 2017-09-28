@@ -1,44 +1,36 @@
-import { Component, OnInit } from 'angular2/core';
-import { Router } from 'angular2/router';
 import { Authentication } from "../../services/authentication/authentication";
-import { Location } from "../../services/location/location";
+import { LocationHelper } from '../../services/location/location';
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 
 @Component({
     selector: 'oauth2-redirect',
     template: 'You will be redirect to the about page&hellip;',
-    providers: [],
-    directives: [],
-    pipes: []
 })
 export class Oauth2RedirectComponent implements OnInit
 {
-    authentication: Authentication;
-    router: Router;
-
-    constructor(authentication: Authentication, router: Router)
-    {
-        this.authentication = authentication;
-        this.router = router;
-    }
+    constructor(
+        private authentication: Authentication,
+        private router: Router,
+        private locationHelper: LocationHelper
+    )
+    {}
 
     ngOnInit ()
     {
-        const token = Location.getSearchParam('access_token');
-
-        console.info('token is', token);
+        const token = LocationHelper.getSearchParam('access_token');
 
         if (token) {
-            this.authentication.setToken(token);
-            this.authentication
-                .getUser()
-                .then(user => this.router.navigate(['About']))
-                .catch(() => {
-                    this.router.navigate(['Login']);
+
+            this.authentication.getUser().take(1)
+                .subscribe(user => {
+                    const url = user !== null ? '/about' : '/login';
+                    this.router.navigate([url]);
                 });
         }
         else {
             // invalid token
-            this.router.navigate(['Login']);
+            this.router.navigate(['/login']);
         }
 
     }

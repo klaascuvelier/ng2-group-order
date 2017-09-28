@@ -1,5 +1,5 @@
-import { Component, OnInit } from 'angular2/core';
-import { Router } from 'angular2/router';
+import { Component } from '@angular/core';
+import { Router } from '@angular/router';
 
 import { DataStore } from '../../services/datastore/datastore';
 import { Authentication } from '../../services/authentication/authentication';
@@ -10,53 +10,68 @@ import { User } from '../../classes/user';
 
 @Component({
     selector: 'create-group',
-    template: require('./create-group.html'),
-    styleUrls: [require('./create-group.css')],
-    providers: [],
-    directives: [],
-    pipes: []
+    template: `
+        <div class="content">
+            <h2>Create a new group order</h2>
+
+            <form (submit)="createGroupOrder(groupName.value, groupOrderUrl.value, groupDescription.value, groupAdmins.value)">
+                <fieldset>
+                    <label>Group Name</label>
+                    <input type="text" placeholder="some group name" #groupName>
+                </fieldset>
+
+                <fieldset>
+                    <label>Order description</label>
+                    <textarea #groupDescription></textarea>
+                </fieldset>
+
+                <fieldset>
+                    <label>Order url</label>
+                    <input type="url" placeholder="http://www.pizza.be" #groupOrderUrl>
+                </fieldset>
+
+                <fieldset>
+                    <label>Organizer</label>
+                    <input type="text" disabled value="{{ (user$|async)?.name }}">
+                </fieldset>
+
+                <fieldset>
+                    <label>Other admins (add user's id, comma separated)</label>
+                    <input type="text" #groupAdmins placeholder="124895, 23498983" />
+                </fieldset>
+
+                <fieldset class="submit">
+                    <button
+                        [disabled]="!(user$|async)"
+                        type="submit"
+                    >Create group</button>
+                </fieldset>
+            </form>
+        </div>
+    `
 })
-export class CreateGroupComponent implements OnInit
+export class CreateGroupComponent
 {
-    dataStore: DataStore = null;
-    authentication: Authentication = null;
-    router: Router = null;
-    user: User = new User();
+    user$ = this.authentication.getUser();
 
-    constructor (dataStore: DataStore, authentication: Authentication, router: Router)
-    {
-        this.dataStore = dataStore;
-        this.authentication = authentication;
-        this.router = router;
-    }
-
-    ngOnInit ()
-    {
-        // needs login
-        this.authentication
-            .getUser()
-            .then(user => this.user = user)
-            .catch(() => this.router.navigate(['Login']));
-    }
+    constructor (
+        private dataStore: DataStore,
+        private authentication: Authentication,
+        private router: Router,
+        private uuidGenerator: UuidGenerator
+    ) {}
 
     createGroupOrder (name, orderUrl, description, admins)
     {
-        // Refetch user
-        this.authentication.getUser()
-            .then(user => {
-                this.user = user;
-
-                const id = UuidGenerator.generate();
+        this.user$
+            .subscribe(user => {
+                const id = this.uuidGenerator.generate();
                 const adminIds = admins
                     .split(',')
                     .map(adminId => adminId.trim())
                     .filter(adminId => /^[0-9]+$/.test(adminId))
-                    .map(adminId => Number(adminId));
-
-                // Make sure the creators id is in the admins list
-                if (adminIds.indexOf(user.id) === -1) {
-                    adminIds.unshift(user.id);
-                }
+                    .map(adminId => Number(adminId))
+                    .filter(adminId => adminId !== user.id);
 
                 const order = GroupOrder.build({
                     id,
@@ -66,15 +81,12 @@ export class CreateGroupComponent implements OnInit
                     creatorName: user.name,
                     creatorId: user.id,
                     status: GroupOrderStatus.OPEN,
-                    adminIds
+                    admins: adminIds
                 });
 
                 // You'd think this might cause some race condition, but haven't experienced it yet
                 this.dataStore.createGroupOrder(order);
-                this.router.navigate(['GroupOrder', { id }]);
-            })
-            .catch(() => {
-                alert('You are not authenticated');
+                this.router.navigate(['/group-order', id]);
             });
     }
 }

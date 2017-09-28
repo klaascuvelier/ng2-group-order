@@ -1,4 +1,5 @@
-import {Injectable} from 'angular2/core';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs/Observable';
 
 export const STORAGE_KEY_VISITED = 'group-order-visited';
 export const STORAGE_KEY_TOKEN = 'group-order-meetup-token';
@@ -6,60 +7,39 @@ export const STORAGE_KEY_USER = 'group-order-meetup-user';
 
 
 @Injectable()
-export class Storage
-{
-    hasKey (key: string): boolean
-    {
+export class StorageHelper {
+    hasKey(key: string): boolean {
         return localStorage.getItem(key) !== null;
     }
 
-    /**
-     * @param {string} key
-     * @returns {Promise<any>}
-     */
-    getItem (key: string): Promise<any>
-    {
+    getItem(key: string): Observable<any> {
         try {
             const data = localStorage.getItem(key);
             const value = JSON.parse(data);
 
-            return Promise.resolve(value);
+            return Observable.of(value);
         }
         catch (exception) {
-            return Promise.reject(`Could not get item ${key}: ${exception}`);
+            return Observable.of(null);
         }
     }
 
-    /**
-     * @param {string} key
-     * @param {any} value
-     * @returns {Promise}
-     */
-    setItem (key: string, value: any)
-    {
+    setItem(key: string, value: any): void {
         try {
             const data = JSON.stringify(value);
             localStorage.setItem(key, data);
-
-            return Promise.resolve();
         }
         catch (exception) {
-            return Promise.reject(`Could not set item ${key}: ${exception}`);
+            console.error('could not add data to local storage', exception);
         }
     }
 
-    /**
-     * @param {string} key
-     * @returns {Promise}
-     */
-    removeItem (key: string)
-    {
+    removeItem(key: string): void {
         try {
             localStorage.removeItem(key);
-            return Promise.resolve();
         }
         catch (exception) {
-            return Promise.reject(`Could not remove item ${key}: ${exception}`);
+            console.error('could not remove data from local storage', exception);
         }
     }
 }

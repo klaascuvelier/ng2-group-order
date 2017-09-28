@@ -1,17 +1,28 @@
 {
   "compilerOptions": {
-    "target": "ES5",
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "target": "es5",
+    "noImplicitAny": false,
     "removeComments": true,
-    "emitDecoratorMetadata": true,
+    "sourceMap": false,
+    "module": "es2015",
+    "skipLibCheck": true,
     "experimentalDecorators": true,
-    "noEmitHelpers": false,
-    "sourceMap": true
+    "emitDecoratorMetadata": true,
+    "moduleResolution": "node",
+    "outDir": "out",
+    "typeRoots": [
+      "node_modules/@types"
+    ]
   },
-  "exclude": [
-    "node_modules"
+  "include": [
+    "src/**/*.*"
   ],
-  "compileOnSave": false,
-  "buildOnSave": false
+  "exclude": [
+    "out",
+    "node_modules",
+    "dist",
+    "reports",
+    "src/**/*.ngfactory.ts",
+    "src/**/*.spec.ts"
+  ]
 }
