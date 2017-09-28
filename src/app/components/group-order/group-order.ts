@@ -112,11 +112,11 @@ const VALUE_NOT_FOUND = -1;
     
                         <form class="orders"
                               *ngIf="(isLoggedIn$|async) && (groupOrder.status !== 0)"
-                              (submit)="addOrder(orderDescription.value, orderPrice.value)"
+                              (submit)="addOrder(orderDescription.value, orderPrice.value, userName.value)"
                         >
                             <fieldset>
                                 <label>Name</label>
-                                <input type="text" value="{{ (user$|async)?.name }}" disabled>
+                                <input type="text" #userName value="{{ (user$|async)?.name || (user$|async)?.email }}">
                             </fieldset>
     
                             <fieldset>
@@ -295,14 +295,14 @@ export class GroupOrderComponent implements OnInit, OnDestroy {
         this.subscriptions.forEach(subscription => subscription.unsubscribe());
     }
 
-    addOrder(description, price): void {
+    addOrder(description, price, userName): void {
         Observable
             .combineLatest([this.user$, this.groupOrderId$])
             .take(1)
             .subscribe(([user, groupOrderId]) => {
                 const order = Order.build({
                     id: this.uuidGenerator.generate(),
-                    creatorName: user.name,
+                    creatorName: userName,
                     creatorId: user.id,
                     description,
                     price: parseFloat(price.replace(',', '.')),
